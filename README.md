@@ -27,20 +27,18 @@ Cost: ~$2.10/h
 
 ### Ansible requirement
 
-1. Install the ansible requirement: 
-
-    
-    virtualenv venv
-    source venv/bin/activate
-    pip install -q -r ansible/ansible-requirements.txt
+1. Install the ansible requirement:
+       
+        virtualenv venv
+        source venv/bin/activate
+        pip install -q -r ansible/ansible-requirements.txt
 
 
 2.  Install ansible plugin, this require a write access to `/etc/ansible` 
 
-  
-    sudo chown $USER.$USER -R /etc/ansible
-    ansible-galaxy install --force -r requirements.txt
-    sudo chown root.root -R /etc/ansible
+        sudo chown $USER.$USER -R /etc/ansible
+        ansible-galaxy install --force -r requirements.txt
+        sudo chown root.root -R /etc/ansible
 
 
 ### Configure AWS environment
@@ -52,9 +50,8 @@ Cost: ~$2.10/h
 
 3. Before running ansible command you need to activate the virtual environment:
 
-
-    source venv/bin/activate
-    export ANSIBLE_HOST_KEY_CHECKING=False
+        source venv/bin/activate
+        export ANSIBLE_HOST_KEY_CHECKING=False
 
 
 ## Create the Nuxeo stack
