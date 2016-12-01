@@ -35,10 +35,9 @@ Cost: ~$2.10/h
     pip install -q -r ansible/ansible-requirements.txt
 
 
-2.  Install ansible plugin 
+2.  Install ansible plugin, this require a write access to `/etc/ansible` 
 
-   
-    # need write access to /etc/ansible
+  
     sudo chown $USER.$USER -R /etc/ansible
     ansible-galaxy install --force -r requirements.txt
     sudo chown root.root -R /etc/ansible
