@@ -1,0 +1,4 @@
+---
+
+- name: Restart diamond
+  service: name=diamond state=restarted

@@ -1,0 +1,27 @@
+---
+
+- name: Check if docker compose is setup
+  stat:
+    path: /etc/default/docker.installed
+  register: docker_default_exists
+
+- name: Install docker compose
+  include: docker.yml
+  when: not docker_default_exists.stat.exists
+
+- name: Add screen conf
+  copy: src=screenrc dest=/home/ubuntu/.screenrc owner=ubuntu force=no
+
+- name: Add docker files
+  copy: src=monitor dest=/ssd1/ force=no
+
+- name: Start docker compose
+  shell: docker-compose up -d
+  args:
+    chdir: /ssd1/monitor
+
+- name: Wait for Grafana to be available
+  wait_for: host={{groups["management"][0]}} port=80 delay=10 timeout=320 state=started
+
+- name: Wait for Graphite to be available
+  wait_for: host=localhost port=2030 delay=10 timeout=320 state=started

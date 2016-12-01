@@ -1,0 +1,20 @@
+---
+- name: Copy cf
+  copy: src=cloudformation.yml dest=/tmp/cf.yml
+
+- name: Provision infrastructure on AWS
+  cloudformation:
+    stack_name: "{{ bench_tag }}"
+    state: "present"
+    region: "{{ aws_region }}"
+    template: "/tmp/cf.yml"
+    template_parameters:
+      AllowSSHFrom: "{{aws_allow_ssh_from}}"
+      Profile: "{{deployment_profile}}"
+      KeyPair: "{{ keypair }}"
+  register: cf
+
+
+- name: Pause if changed
+  pause: seconds=15
+  when: cf.changed

@@ -1,0 +1,31 @@
+127.0.0.1 localhost
+{% if groups['mongo'] is defined %}
+{% for host in groups['mongo'] %}
+{{ hostvars[host].private_ip }} mongo{{loop.index}}
+{% endfor %}
+{% endif %}
+{% if groups['nuxeo'] is defined %}
+{% for host in groups['nuxeo'] %}
+{{ hostvars[host].private_ip }} nuxeo{{loop.index}}
+{% endfor %}
+{% endif %}
+{% if groups['es'] is defined %}
+{% for host in groups['es'] %}
+{{ hostvars[host].private_ip }} elastic{{loop.index}}
+{% endfor %}
+{% endif %}
+{% if groups['management'] is defined %}
+{% for host in groups['management'] %}
+{{ hostvars[host].private_ip }} management{{loop.index}}
+{% endfor %}
+{% endif %}
+
+
+# The following lines are desirable for IPv6 capable hosts
+
+::1 ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+ff02::3 ip6-allhosts

@@ -1,0 +1,33 @@
+---
+
+# install pip via apt before we can use the pip module below
+- name: Install pip, python-dev package with apt
+  apt:
+    pkg: "{{ item }}"
+    state: latest
+    update_cache: yes
+    cache_valid_time: "600"
+  with_items:
+    - python-dev
+    - python-pip
+
+# Upgrade pip with pip to fix angstwad/docker.ubuntu/pull/35 and docker-py/issues/525
+# Install latest version when no specific release is set.
+- name: Upgrade latest pip, setuptools, docker-py and docker-compose with pip
+  pip:
+    name: "{{ item.name }}"
+    state: latest
+  with_items:
+    - { name: pip }
+    - { name: setuptools }
+    - { name: docker-py }
+    - { name: docker-compose }
+  ignore_errors: yes
+
+- name: Start docker
+  service:
+    name: docker
+    state: started
+
+- name: Mark docker as being installed
+  shell: touch /etc/default/docker.installed

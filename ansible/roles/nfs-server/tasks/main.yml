@@ -1,0 +1,6 @@
+---
+- name: Nuxeo user
+  user: name={{nuxeo_user}} home=/home/{{nuxeo_user}} createhome=yes shell=/bin/bash state=present uid="1000"
+- name: Shared binaries directory
+  file: path=/home/nuxeo/binaries state=directory owner=nuxeo group=nuxeo mode=0775
+

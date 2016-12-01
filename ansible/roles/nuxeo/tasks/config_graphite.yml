@@ -1,0 +1,28 @@
+---
+
+# Graphite
+- name: Config - metrics.graphite.enabled
+  lineinfile:
+    dest: /opt/nuxeo/conf/nuxeo.conf
+    regexp: '^#?metrics\.graphite\.enabled\s*='
+    line: "metrics.graphite.enabled=true"
+- name: Config - metrics.graphite.host
+  lineinfile:
+    dest: /opt/nuxeo/conf/nuxeo.conf
+    regexp: '^#?metrics\.graphite\.host\s*='
+    line: "metrics.graphite.host={{hostvars[groups['management'][0]].private_ip}}"
+- name: Config - metrics.graphite.port
+  lineinfile:
+    dest: /opt/nuxeo/conf/nuxeo.conf
+    regexp: '^#?metrics\.graphite\.port\s*='
+    line: "metrics.graphite.port=2030"
+- name: Config - metrics.graphite.period
+  lineinfile:
+    dest: /opt/nuxeo/conf/nuxeo.conf
+    regexp: '^#?metrics\.graphite\.period\s*='
+    line: "metrics.graphite.period=15"
+- name: Config - metrics.tomcat.enabled
+  lineinfile:
+    dest: /opt/nuxeo/conf/nuxeo.conf
+    regexp: '^#?metrics\.tomcat\.enabled\s*='
+    line: "metrics.tomcat.enabled=true"

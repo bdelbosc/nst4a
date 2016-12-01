@@ -1,0 +1,31 @@
+---
+reset_data: false
+dbhost: 127.0.0.1
+dbport: 5432
+dbnames:
+  - nuxeo
+  - staging
+dbuser: nuxeo
+dbpass: nuxeo
+
+postgresql_version: 9.4
+
+postgresql_conf: {
+  max_prepared_transactions: 64,
+  work_mem: 1MB,
+  maintenance_work_mem: 16MB,
+  wal_buffers: -1,
+  max_connections: 100,
+  shared_buffers: 128MB,
+  effective_cache_size: 128MB,
+  track_functions: pl,
+  shared_preload_libraries: "'pg_stat_statements, auto_explain'",
+  pg_stat_statements.max: 10000,
+  pg_stat_statements.track: top,
+  auto_explain.log_min_duration: '-1',
+  auto_explain.log_analyze: 'false',
+  synchronous_commit: 'off',
+  random_page_cost: 2,
+  default_statistics_target: 500,
+}
+

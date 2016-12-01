@@ -1,0 +1,36 @@
+---
+
+- name: Check if ssd1 volume is mounted
+  shell: cat /proc/mounts | grep /dev/xvdb
+  changed_when: False
+  failed_when: False
+  register: mounted 
+
+- name: Format ssd1 volume
+  shell: mkfs.xfs -f /dev/xvdb
+  when: mounted.stdout == ""
+
+- name: Mount /ssd1
+  mount: name=/ssd1 fstype=xfs src=/dev/xvdb opts=noatime,nodiratime state=mounted
+  when: mounted.stdout == ""
+
+- name: Set ssd1 read ahead
+  # 32 sector is 16k
+  shell: blockdev --setra 32 /dev/xvdb
+  when: mounted.stdout == ""
+
+- name: Use noop scheduler ssd1
+  shell: echo noop > /sys/block/xvdb/queue/scheduler
+  when: mounted.stdout == ""
+# hugepage
+- name: Disable hugepage defrag
+  shell: echo never > /sys/kernel/mm/transparent_hugepage/defrag
+
+- name: Disable hugepage
+  shell: echo never > /sys/kernel/mm/transparent_hugepage/enabled
+
+- name: Disable zone reclaim
+  shell: echo 0 > /proc/sys/vm/zone_reclaim_mode
+
+- name: Create Mongo directory
+  file: path=/ssd1/mongodb state=directory

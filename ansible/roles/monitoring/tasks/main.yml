@@ -1,0 +1,45 @@
+---
+
+# setup hosts and hostname for clean monitoring names
+- name: Check if /etc/hosts is set
+  stat: path=/etc/hosts.bak
+  register: hostdone
+
+- name: Setup hosts names
+  include: ./set_hosts.yml
+  when: not hostdone.stat.exists
+
+- name: Check if diamond is setup
+  stat:
+    path: /etc/diamond/diamond.conf
+  register: diamond_exists
+
+- name: Get diamond deb package
+  copy: src=diamond_4.0.473_all.deb dest=/tmp/diamond_4.0.473_all.deb force=no
+  when: not diamond_exists.stat.exists
+
+
+- name: Download python-support manually, workaround for ubuntu 16.04
+  shell: wget http://launchpadlibrarian.net/109052632/python-support_1.0.15_all.deb -O /tmp/python-support_1.0.15_all.deb
+
+- name: Install python-support manually
+  shell: dpkg -i /tmp/python-support_1.0.15_all.deb
+
+- name: Install other diamond dep
+  apt: name={{item}} state=latest
+  with_items:
+    - python-configobj
+    - python-pymongo
+    - python-redis
+
+- name: Install package
+  shell: dpkg -i /tmp/diamond_4.0.473_all.deb
+  when: not diamond_exists.stat.exists
+
+- name: Get hostname
+  shell: hostname
+  register: hostname
+
+- name: Configure diamond
+  template: src=diamond.conf.j2 dest=/etc/diamond/diamond.conf
+  notify: Restart diamond

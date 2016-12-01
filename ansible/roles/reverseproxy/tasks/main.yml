@@ -1,0 +1,6 @@
+---
+- name: Shared binaries directory
+  file: path=/etc/apache2/virtualhosts/ state=directory owner=root group=root mode=0775
+
+- name: Copy reverseproxy conf
+  copy: src=nuxeo.conf dest=/etc/apache2/virtualhosts/nuxeo.conf owner=root group=root

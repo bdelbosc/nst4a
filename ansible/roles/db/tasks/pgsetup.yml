@@ -1,0 +1,35 @@
+---
+- name: Find PostgreSQL config file
+  shell: psql -t -P format=unaligned -c 'show config_file'
+  sudo_user: postgres
+  register: pgconf
+  changed_when: false
+- name: Find PostgreSQL hba file
+  shell: psql -t -P format=unaligned -c 'show hba_file'
+  sudo_user: postgres
+  register: pghba
+  changed_when: false
+- name: PostgreSQL listen address
+  lineinfile: dest={{pgconf.stdout}}
+    regexp='^#?listen_addresses\s*='
+    line="listen_addresses = '*'"
+    state=present
+  when: dbhost != '127.0.0.1' and dbhost != 'localhost'
+  notify: Restart PostgreSQL
+
+- name: Update postgresql.variables
+  lineinfile:  dest={{pgconf.stdout}}
+    line="{{item.key}}={{item.value}}" regexp="#?{{item.key}}\s*=.*"
+  with_dict: postgresql_conf
+  notify: Restart PostgreSQL
+
+- name: Enable remote db access
+  lineinfile: dest={{pghba.stdout}}
+    regexp='^host\s*all\s*all\s*0\.0\.0\.0/0\s*md5'
+    line="host all all 0.0.0.0/0 md5"
+    state=present
+  when: dbhost != '127.0.0.1' and dbhost != 'localhost'
+  notify: Restart PostgreSQL
+- name: Execute handlers
+  meta: flush_handlers
+

@@ -1,0 +1,6 @@
+---
+- name: Install nuxeo hotfixes
+  shell: "{{nuxeo_base}}/server/bin/nuxeoctl mp-hotfix --accept yes"
+  environment:
+    NUXEO_CONF: "{{nuxeo_conf_dir}}/nuxeo.conf"
+  sudo_user: "{{nuxeo_user}}"

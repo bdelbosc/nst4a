@@ -1,0 +1,48 @@
+---
+#nuxeo_distribution: url to a distribution zip - takes precedence over nuxeo_version
+#nuxeo_distribution: /opt/nuxeo-distribution-tomcat-7.10-nuxeo-cap.zip
+nuxeo_version: 7.10
+nexus_url: "https://maven.nuxeo.org/nexus/service/local/artifact/maven/redirect?r=%s&g=org.nuxeo.ecm.distribution&a=nuxeo-distribution-tomcat&v=%s&e=zip&c=nuxeo-cap"
+download_mp_package: true
+update_snapshots: false
+compile_ffmpeg: true
+reset_data: false
+nuxeo_service_name: "nuxeo"
+nuxeo_user: "nuxeo"
+nuxeo_user_uid: "1000"
+nuxeo_base: "/opt/nuxeo"
+nuxeo_log_level: "INFO"
+dbhost: "127.0.0.1"
+dbport: 5432
+dbname: "nuxeo"
+dbuser: "nuxeo"
+dbpass: "nuxeo"
+changecontext: true
+
+
+nuxeo_conf: {
+  nuxeo.vcs.fulltext.disabled: 'true',
+  nuxeo.vcs.fulltext.search.disabled: 'true',
+
+  nuxeo.redis.enabled: 'true',
+  nuxeo.redis.host: "{{hostvars[groups['redis'][0]][public_interface]['ipv4']['address']}}",
+  nuxeo.redis.port: 6379,
+  nuxeo.redis.prefix: 'nuxeo:',
+  nuxeo.redis.database: 0,
+  nuxeo.redis.timeout: 2000,
+  nuxeo.redis.maxTotal: 32,
+
+  elasticsearch.addressList: "{{hostvars[ansible_hostname][public_interface]['ipv4']['address']}}:9300",
+  elasticsearch.clusterName: "{{bench_tag}}",
+
+  elasticsearch.reindex.bucketReadSize: 2000,
+  elasticsearch.reindex.bucketWriteSize: 250,
+
+  elasticsearch.indexName: nuxeo,
+  elasticsearch.indexNumberOfReplicas: 0,
+  elasticsearch.adminCenter.displayClusterInfo: true,
+  elasticsearch.indexing.maxThreads: 8,
+  elasticsearch.indexing.clearCompletedAfterSeconds: 1
+}
+
+mp_version: 1.0-SNAPSHOT

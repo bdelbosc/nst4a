@@ -1,0 +1,29 @@
+---
+- name: install nfs client
+  action: apt pkg=nfs-common state=present
+  tags:
+    - nfs
+  when: use_nfs
+
+- name: Ensure rpcbind is running (Ubuntu Trusty Tahr or newer)
+  action: service name=rpcbind state=started enabled=yes
+
+- name: Ensure {{nfsmount}} directory exists
+  action: file path={{nfsmount}} state=directory
+  tags:
+    - nfs
+  when: use_nfs
+
+- shell: if [ -z "$nfsoptions" ]; then  echo rw,sync,nfsvers=3; else echo $nfsoptions; fi
+  register: _nfsopts
+  sudo: false
+  connection: local
+  tags:
+    - nfs
+  when: use_nfs
+
+- name: configure /etc/fstab on clients
+  action: mount name={{nfsmount}} src={{nfsserver}}:{{nfspath}} fstype=nfs opts={{_nfsopts.stdout}} state=mounted
+  tags:
+    - nfs
+  when: use_nfs

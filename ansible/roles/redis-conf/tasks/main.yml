@@ -1,0 +1,18 @@
+---
+
+- name: create Sentinel temp folder
+  file: path=/tmp/sentinel state=directory mode=755
+
+- name: redis preparation - create master list 1
+  set_fact: redis_master_list_item="{{ hostvars[item]['ansible_ssh_host'] }}:6379"
+  with_items: "{{groups['redis']}}"
+  register: redis_master_list_temp
+- name: redis preparation - create master list 2
+  set_fact: redis_master_list="{{ redis_master_list_temp.results | map(attribute='ansible_facts.redis_master_list_item') | list | join(' ') }}"
+
+- name: redis preparation - create slave config 1
+  set_fact: redis_slave_config_item="{{ hostvars[item]['redis_slave_host'] }}:6380 {{ hostvars[item]['ansible_ssh_host'] }}:6379"
+  with_items: "{{groups['redis']}}"
+  register: redis_slave_config_temp
+- name: redis preparation - create slave config 2
+  set_fact: redis_slave_config="{{ redis_slave_config_temp.results | map(attribute='ansible_facts.redis_slave_config_item') | list }}"

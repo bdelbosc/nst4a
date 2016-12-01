@@ -1,0 +1,19 @@
+---
+
+- name: Check if ssd1 volume is mounted
+  shell: cat /proc/mounts | grep /dev/xvdb
+  changed_when: False
+  failed_when: False
+  register: mounted
+
+- name: Format ssd1 volume
+  shell: mkfs.ext4 /dev/xvdb
+  when: mounted.stdout == ""
+
+- name: Mount /ssd1
+  mount: name=/ssd1 fstype=ext4 src=/dev/xvdb opts=noatime,nodiratime state=mounted
+  when: mounted.stdout == ""
+
+- name: Use noop scheduler ssd1
+  shell: echo noop > /sys/block/xvdb/queue/scheduler
+  when: mounted.stdout == ""

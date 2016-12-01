@@ -1,0 +1,8 @@
+---
+#nuxeo_distribution: url to a distribution zip - takes precedence over nuxeo_version
+#nuxeo_version: distribution is fetched in the maven repository
+nfsserver: 178.33.237.153
+nfspath: /home/nuxeo/binaries
+nfsmount: /mnt/binaries
+
+use_nfs: true

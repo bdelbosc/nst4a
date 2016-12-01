@@ -1,0 +1,72 @@
+---
+
+- hosts: aws
+  gather_facts: yes
+  sudo: yes
+  roles:
+  - common
+  - monitoring
+  vars:
+    sshuser: "ubuntu"
+
+- hosts: management
+  gather_facts: yes
+  sudo: yes
+  roles:
+    - management
+
+- hosts: es
+  gather_facts: yes
+  sudo: yes
+  roles:
+    - es-aws
+    - elasticsearch
+  vars:
+    elasticsearch_data_dir: /ssd1/elasticsearch
+    elasticsearch_cluster_name: "{{bench_tag}}"
+    elasticsearch_network_host: "{{private_ip}}"
+
+- hosts: mongo
+  sudo: yes
+  roles:
+    - mongo-aws
+    - Stouts.mongodb
+  vars:
+    mongodb_conf_bind_ip: 127.0.0.1,{{private_ip}}
+    mongodb_conf_dbpath: /ssd1/mongodb
+
+- hosts: nuxeo
+  gather_facts: yes
+  sudo: yes
+  roles:
+  - {role: nuxeo, stage: init, installffmpeg: false}
+  - {role: reverseproxy}
+  - {role: nuxeo-aws }
+
+
+# Prepare for updates
+- hosts: nuxeo
+  gather_facts: yes
+  sudo: yes
+  roles:
+  - {role: nuxeo, stage: stop}
+
+- hosts: nuxeo
+  gather_facts: yes
+  sudo: yes
+  roles:
+  - {role: nuxeo, stage: setup}
+
+- hosts: nuxeo
+  gather_facts: yes
+  sudo: yes
+  tasks:
+  - include: ./roles/nuxeo/tasks/config_graphite.yml
+
+- hosts: nuxeo
+  gather_facts: no
+  sudo: yes
+  tasks:
+    - name: Restart Apache
+      service: name=apache2 state=restarted
+

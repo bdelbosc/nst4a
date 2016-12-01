@@ -1,0 +1,57 @@
+---
+
+- name: get apt key for pgdg
+  get_url: url=https://www.postgresql.org/media/keys/ACCC4CF8.asc dest=/tmp/ACCC4CF8.asc
+           sha256sum=97144ef157a5f51592680367cc450c0c065d0c4a4503ff2a76d3e293b5b04a03
+           validate_certs=no
+
+- name: install apt key for pgdg
+  apt_key: id=ACCC4CF8 url=file:///tmp/ACCC4CF8.asc state=present
+
+- name: sources.list.d for pgdg
+  template: dest=/etc/apt/sources.list.d/pgdg.list src=pgdg.list
+            owner=root group=root mode=0644
+  register: postgresql_sources
+
+- name: preferences.d for pgdg
+  copy: dest=/etc/apt/preferences.d/pgdg.pref src=pgdg.pref
+        owner=root group=root mode=0644
+
+- name: update apt cache
+  apt: update_cache=yes
+  when: postgresql_sources|changed
+
+- name: Install PostgreSQL packages from pgdg
+  apt: name="postgresql-{{postgresql_version}}" state=present
+  register: pginstall
+
+- name: Install PostgreSQL packages from pgdg
+  apt: name="postgresql-contrib-{{postgresql_version}}" state=present
+  register: pginstall
+
+- name: Install PostgreSQL packages from pgdg
+  apt: name="postgresql-client-{{postgresql_version}}" state=present
+  register: pginstall
+
+- name: Install PostgreSQL packages from pgdg
+  apt: name="libpq-dev" state=present
+  register: pginstall
+
+- name: Install PostgreSQL packages from pgdg
+  apt: name="python-psycopg2" state=present
+  register: pginstall
+
+- name: Start PostgreSQL
+  service: name="postgresql" state="started"
+
+- name: Initialize PostgreSQL
+  include: pginit.yml
+  when: pginstall.changed and (stage is not defined or stage == 'init')
+
+- name: Setup PostgreSQL
+  include: pgsetup.yml
+  when: (stage is not defined or stage == 'init')
+
+- name: Setup database
+  include: dbsetup.yml
+  when: stage is not defined or stage == 'setup'

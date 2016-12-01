@@ -1,0 +1,12 @@
+---
+apache_create_vhosts: true
+apache_vhosts_filename: "vhosts.conf"
+apache_vhosts:
+  # Additional optional properties: 'serveradmin, serveralias, extra_parameters'.
+  - {servername: "{{bench_tag}}", documentroot: "/var/www/html", extra_parameters: "IncludeOptional virtualhosts/*.conf"}
+apache_mods_enabled:
+  - proxy.load
+  - headers.load
+  - proxy.conf
+  - proxy_http.load
+  - rewrite.load

@@ -1,0 +1,56 @@
+---
+aws_region: eu-west-1
+keypair: ppair
+bench_tag: foo
+
+download_mp_package: false
+
+elb_name: "{{ bench_tag }}"
+
+nuxeo_version: "9.1-SNAPSHOT"
+update_snapshots: false
+reset_data: false
+use_nfs: false
+
+installhotfixes: true
+
+vcsmaxpoolsize: 50
+nuxeo_distribution: http://community.nuxeo.com/static/snapshots/nuxeo-server-tomcat-9.1-SNAPSHOT.zip
+elasticsearch_install_java: true
+elasticsearch_data_dir: /ssd1/elasticsearch
+elasticsearch_heap_size: 16G
+changecontext: false
+enableFrameGraph: true
+
+nuxeo_conf: {
+  nuxeo.redis.enabled: 'true',
+  nuxeo.redis.host: "{{redis_hosts[0]}}",
+  nuxeo.redis.port: 6379,
+  nuxeo.redis.prefix: 'nuxeo:',
+  nuxeo.redis.database: 0,
+  nuxeo.redis.timeout: 2000,
+
+  nuxeo.templates: 'default,mongodb,perf',
+  nuxeo.wizard.done: true,
+
+  #nuxeo.db.type: 'mongodb',
+  nuxeo.mongodb.server: "{{mongodb_hosts[0]}}",
+  nuxeo.mongodb.dbname: nuxeo,
+  nuxeo.db.transactiontimeout: 3600,
+
+  elasticsearch.addressList: "{{ es_hosts[0] }}:9300",
+  elasticsearch.clusterName: "{{ bench_tag }}",
+  elasticsearch.reindex.bucketReadSize: 2000,
+  elasticsearch.reindex.bucketWriteSize: 250,
+  elasticsearch.indexName: nuxeo,
+  elasticsearch.indexNumberOfReplicas: 0,
+  elasticsearch.adminCenter.displayClusterInfo: true,
+  elasticsearch.indexing.maxThreads: 12,
+  elasticsearch.indexing.clearCompletedAfterSeconds: 1,
+  nuxeo.redis.maxTotal: 32,
+
+}
+
+nuxeo_user_uid: "1005"
+
+ansible_os_family: "Debian"

@@ -1,0 +1,34 @@
+---
+- name: Install nuxeo dependencies
+  apt: name="libreoffice" state=present update_cache=yes
+
+- name: Install nuxeo dependencies
+  apt: name="imagemagick" state=present update_cache=yes
+
+- name: Install nuxeo dependencies
+  apt: name="poppler-utils" state=present update_cache=yes
+
+- name: Install nuxeo dependencies
+  apt: name="ffmpeg2theora" state=present update_cache=yes
+
+- name: Install nuxeo dependencies
+  apt: name="ufraw" state=present update_cache=yes
+
+- name: Install nuxeo dependencies
+  apt: name="libwpd-tools" state=present update_cache=yes
+
+- name: Install nuxeo dependencies
+  apt: name="wget" state=present update_cache=yes
+
+# Update repos
+- name: Update repositories
+  apt_repository: repo="ppa:webupd8team/java" state=present update_cache=no
+
+# Accept Oracle license
+- name: Accept Oracle license prior JDK installation
+  shell: echo debconf shared/accepted-oracle-license-v1-1 select true | sudo debconf-set-selections; echo debconf shared/accepted-oracle-license-v1-1 seen true | sudo debconf-set-selections creates=/usr/lib/jvm/java-8-oracle
+
+# Install Java
+- name: Install dependencies
+  apt: pkg=oracle-java8-installer state=present
+

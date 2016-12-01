@@ -1,0 +1,465 @@
+Mappings:
+  RegionMap:
+    ap-northeast-1:
+      AMI: ami-dd9240bc
+    ap-southeast-1:
+      AMI: ami-7d983d1e
+    eu-central-1:
+      AMI: ami-8b03fee4
+    eu-west-1:
+      AMI: ami-47790334
+    sa-east-1:
+      AMI: ami-b9a734d5
+    us-east-1:
+      AMI: ami-a3641cb4
+    us-west-1:
+      AMI: ami-26074946
+    cn-north-1:
+      AMI: ami-5c875331
+    us-gov-west:
+      AMI: ami-015ee760
+    ap-southeast-2:
+      AMI: ami-550c3c36
+    us-west-2:
+      AMI: ami-e1fe2281
+
+  Profiles:
+    test:
+      NuxeoClusterSize: 1
+      NuxeoInstanceType: c4.2xlarge
+      NuxeoInstanceStorage: 30
+      ESClusterSize: 1
+      ESInstanceType: m4.2xlarge
+      ESInstanceStorage: 200
+      MongoDBClusterSize: 1
+      MongoDBInstanceType: m4.2xlarge
+      MongoDBInstanceStorage: 200
+      ManagementInstanceType: c4.xlarge
+      ManagementInstanceStorage: 30
+      RedisInstanceType: cache.m3.xlarge
+
+    prod:
+      NuxeoClusterSize: 2
+      NuxeoInstanceType: c4.2xlarge
+      NuxeoInstanceStorage: 100
+      ESClusterSize: 3
+      ESInstanceType: m4.2xlarge
+      ESInstanceStorage: 100
+      MongoDBClusterSize: 1
+      MongoDBInstanceType: m4.4xlarge
+      MongoDBInstanceStorage: 100
+      ManagementInstanceType: c4.xlarge
+      ManagementInstanceStorage: 30
+      RedisInstanceType: cache.r3.xlarge
+
+Outputs:
+  AWSRegion:
+    Description: AWS region where the cluster is hosted
+    Value: !Ref "AWS::Region"
+
+
+Parameters:
+  AllowSSHFrom:
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: "must be a valid IP CIDR range of the form x.x.x.x/x."
+    Default: "0.0.0.0/0"
+    Description: "The net block (CIDR) that SSH is available to."
+    MaxLength: "18"
+    MinLength: "9"
+    Type: "String"
+
+  Profile:
+    Default: test
+    AllowedValues:
+      - prod
+      - test
+    Default: "test"
+    Description: "Cluster profile (test / prod)"
+    Type: "String"
+
+  KeyPair:
+    Description: The name of an EC2 Key Pair to allow SSH access to the instance
+    Type: String
+
+Resources:
+  # Define the global VPC
+  ClusterVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-vpc"
+
+  CloudIG:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-internet-gateway"
+
+  IgAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref CloudIG
+      VpcId: !Ref ClusterVPC
+
+  PublicRouteTable:
+    DependsOn: IgAttachment
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref ClusterVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-public-route-table"
+
+  PublicInternetRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref CloudIG
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 0, !GetAZs "" ]
+      CidrBlock: "10.0.0.0/24"
+      VpcId: !Ref ClusterVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-public-subnetA"
+
+  PublicSubnetARouteAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetA
+
+
+  DefaultSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Enable HTTP/ssh access"
+      SecurityGroupIngress:
+        - { CidrIp: "0.0.0.0/0", FromPort: "22", IpProtocol: "tcp", ToPort: "22"}
+        - { CidrIp: "0.0.0.0/0", FromPort: "80", IpProtocol: "tcp", ToPort: "80"}
+        - { CidrIp: "0.0.0.0/0", FromPort: "443", IpProtocol: "tcp", ToPort: "443"}
+        - { CidrIp: "0.0.0.0/0", FromPort: "8080", IpProtocol: "tcp", ToPort: "8080"}
+      VpcId: !Ref ClusterVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-elb-sg"
+
+  DefaultSGAllowAllInternal:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      FromPort: 0
+      ToPort: 65535
+      IpProtocol: tcp
+      SourceSecurityGroupId: !Ref DefaultSG
+      GroupId: !Ref DefaultSG
+
+
+
+  NuxeoHttpLB:
+    Type: "AWS::ElasticLoadBalancing::LoadBalancer"
+    DependsOn: IgAttachment
+    Properties:
+      ConnectionDrainingPolicy:
+        Enabled: "true"
+        Timeout: "300"
+      CrossZone: true
+      HealthCheck:
+        HealthyThreshold: "3"
+        Interval: "30"
+        Target: TCP:8080
+        Timeout: "5"
+        UnhealthyThreshold: "5"
+
+      Listeners:
+        - InstancePort: 8080
+          LoadBalancerPort: 80
+          Protocol: HTTP
+      SecurityGroups:
+        - !Ref "DefaultSG"
+      Subnets:
+        - !Ref "PublicSubnetA"
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-http-lb"
+
+
+  NuxeoInstance:
+    Type: "AWS::EC2::Instance"
+    DependsOn: IgAttachment
+    Properties:
+      EbsOptimized: true
+      ImageId: !FindInMap [ RegionMap, !Ref "AWS::Region", AMI ]
+      InstanceType: !FindInMap [ Profiles, !Ref Profile, NuxeoInstanceType ]
+      KeyName: !Ref KeyPair
+      UserData: !Base64 |
+        #!/bin/bash
+
+        # Increase open files limit
+        echo '*       soft    nofile      4096' >> /etc/security/limits.conf
+        echo '*       hard    nofile      8192' >> /etc/security/limits.conf
+
+        # Upgrade packages and install ssh, vim
+        export DEBIAN_FRONTEND=noninteractive
+        locale-gen en_US.UTF-8
+        update-locale LANG=en_US.UTF-8
+        apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7F0CEB10
+        echo "deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse" > /etc/apt/sources.list.d/mongodb-org-3.2.list
+        apt-get update
+        apt-get -q -y upgrade
+        apt-get -q -y install openssh-server openssh-client vim postfix curl git python
+        update-alternatives --set editor /usr/bin/vim.basic
+
+        # Secure postfix
+        perl -p -i -e "s/^inet_interfaces\s*=.*$/inet_interfaces=127.0.0.1/" /etc/postfix/main.cf
+
+
+        apt-get -q -y install \
+            python python-requests python-lxml \
+            redis-tools \
+            screen wget \
+            atop sysstat
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination:  true
+            VolumeSize: 30
+            VolumeType: gp2
+        - DeviceName: "/dev/xvdb"
+          Ebs:
+            DeleteOnTermination:  true
+            VolumeSize: !FindInMap [ Profiles, !Ref Profile, NuxeoInstanceStorage ]
+            VolumeType: gp2
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: "0"
+          GroupSet: [ !Ref "DefaultSG" ]
+          SubnetId: !Ref "PublicSubnetA"
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-nuxeo"
+        - Key: Role
+          Value: nuxeo
+        - Key: bench
+          Value: !Sub "${AWS::StackName}"
+
+
+
+  ESInstance:
+    Type: "AWS::EC2::Instance"
+    DependsOn: IgAttachment
+    Properties:
+      EbsOptimized: true
+      ImageId: !FindInMap [ RegionMap, !Ref "AWS::Region", AMI ]
+      InstanceType: !FindInMap [ Profiles, !Ref Profile, ESInstanceType ]
+      KeyName: !Ref KeyPair
+      UserData: !Base64 |
+        #!/bin/bash
+
+        # Increase open files limit
+        echo '*       soft    nofile      4096' >> /etc/security/limits.conf
+        echo '*       hard    nofile      8192' >> /etc/security/limits.conf
+
+        # Upgrade packages and install ssh, vim
+        export DEBIAN_FRONTEND=noninteractive
+        locale-gen en_US.UTF-8
+        update-locale LANG=en_US.UTF-8
+        apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7F0CEB10
+        echo "deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse" > /etc/apt/sources.list.d/mongodb-org-3.2.list
+        apt-get update
+        apt-get -q -y upgrade
+        apt-get -q -y install openssh-server openssh-client vim postfix curl git python
+        update-alternatives --set editor /usr/bin/vim.basic
+
+        # Secure postfix
+        perl -p -i -e "s/^inet_interfaces\s*=.*$/inet_interfaces=127.0.0.1/" /etc/postfix/main.cf
+
+
+        apt-get -q -y install \
+            python python-requests python-lxml \
+            redis-tools \
+            screen wget \
+            atop sysstat
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination:  true
+            VolumeSize: 20
+            VolumeType: gp2
+        - DeviceName: "/dev/xvdb"
+          Ebs:
+            DeleteOnTermination:  true
+            VolumeSize: !FindInMap [ Profiles, !Ref Profile, ESInstanceStorage ]
+            VolumeType: gp2
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: "0"
+          GroupSet: [ !Ref "DefaultSG" ]
+          SubnetId: !Ref "PublicSubnetA"
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-es"
+        - Key: Role
+          Value: es
+        - Key: bench
+          Value: !Sub "${AWS::StackName}"
+
+
+  MongoDBInstance:
+    Type: "AWS::EC2::Instance"
+    DependsOn: IgAttachment
+    Properties:
+      EbsOptimized: true
+      ImageId: !FindInMap [ RegionMap, !Ref "AWS::Region", AMI ]
+      InstanceType: !FindInMap [ Profiles, !Ref Profile, MongoDBInstanceType ]
+      KeyName: !Ref KeyPair
+      UserData: !Base64 |
+        #!/bin/bash
+
+        # Increase open files limit
+        echo '*       soft    nofile      4096' >> /etc/security/limits.conf
+        echo '*       hard    nofile      8192' >> /etc/security/limits.conf
+
+        # Upgrade packages and install ssh, vim
+        export DEBIAN_FRONTEND=noninteractive
+        locale-gen en_US.UTF-8
+        update-locale LANG=en_US.UTF-8
+        apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7F0CEB10
+        echo "deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse" > /etc/apt/sources.list.d/mongodb-org-3.2.list
+        apt-get update
+        apt-get -q -y upgrade
+        apt-get -q -y install openssh-server openssh-client vim postfix curl git python
+        update-alternatives --set editor /usr/bin/vim.basic
+
+        # Secure postfix
+        perl -p -i -e "s/^inet_interfaces\s*=.*$/inet_interfaces=127.0.0.1/" /etc/postfix/main.cf
+
+
+        apt-get -q -y install \
+            python python-requests python-lxml \
+            redis-tools \
+            screen wget \
+            atop sysstat
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination:  true
+            VolumeSize: 20
+            VolumeType: gp2
+        - DeviceName: "/dev/xvdb"
+          Ebs:
+            DeleteOnTermination:  true
+            VolumeSize: !FindInMap [ Profiles, !Ref Profile,  MongoDBInstanceStorage ]
+            VolumeType: gp2
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: "0"
+          GroupSet: [ !Ref "DefaultSG" ]
+          SubnetId: !Ref "PublicSubnetA"
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-mongo"
+        - Key: Role
+          Value: mongo
+        - Key: bench
+          Value: !Sub "${AWS::StackName}"
+
+
+  RedisSubnetGroup:
+    Type: "AWS::ElastiCache::SubnetGroup"
+    Properties:
+      Description: "Cache Subnet Group"
+      SubnetIds:
+        - Ref: "PublicSubnetA"
+        - Ref: "PublicSubnetA"
+
+  RedisCluster:
+    Type: "AWS::ElastiCache::CacheCluster"
+    Properties:
+      AutoMinorVersionUpgrade: "true"
+      Engine: "redis"
+      CacheNodeType: !FindInMap [ Profiles, !Ref Profile, RedisInstanceType ]
+      NumCacheNodes: "1"
+      CacheSubnetGroupName: !Ref RedisSubnetGroup
+      VpcSecurityGroupIds:
+        -
+          Fn::GetAtt:
+            - "DefaultSG"
+            - "GroupId"
+
+
+  ManagementInstance:
+    Type: "AWS::EC2::Instance"
+    DependsOn: IgAttachment
+    Properties:
+      ImageId: !FindInMap [ RegionMap, !Ref "AWS::Region", AMI ]
+      InstanceType: !FindInMap [ Profiles, !Ref Profile, ManagementInstanceType ]
+      KeyName: !Ref KeyPair
+      UserData: !Base64 |
+        #!/bin/bash
+
+        # Increase open files limit
+        echo '*       soft    nofile      4096' >> /etc/security/limits.conf
+        echo '*       hard    nofile      8192' >> /etc/security/limits.conf
+
+        # Upgrade packages and install ssh, vim
+        export DEBIAN_FRONTEND=noninteractive
+        locale-gen en_US.UTF-8
+        update-locale LANG=en_US.UTF-8
+        apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7F0CEB10
+        echo "deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse" > /etc/apt/sources.list.d/mongodb-org-3.2.list
+        apt-get update
+        apt-get -q -y upgrade
+        apt-get -q -y install openssh-server openssh-client vim postfix curl git python
+        update-alternatives --set editor /usr/bin/vim.basic
+
+
+        sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
+
+        echo deb https://apt.dockerproject.org/repo ubuntu-xenial main > /etc/apt/sources.list.d/docker.list
+
+        sudo apt-get update
+        sudo apt-get purge lxc-docker
+        apt-cache policy docker-engine
+
+        sudo apt-get install -y linux-image-extra-$(uname -r) linux-image-extra-virtual
+        sudo apt-get install -y docker-engine
+        sudo service docker start
+
+        sudo systemctl enable docker
+        # Secure postfix
+        perl -p -i -e "s/^inet_interfaces\s*=.*$/inet_interfaces=127.0.0.1/" /etc/postfix/main.cf
+
+
+        apt-get -q -y install \
+            python python-requests python-lxml \
+            redis-tools \
+            screen wget \
+            atop sysstat
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination:  true
+            VolumeSize: !FindInMap [ Profiles, !Ref Profile,  ManagementInstanceStorage ]
+            VolumeType: gp2
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: "0"
+          GroupSet: [ !Ref "DefaultSG" ]
+          SubnetId: !Ref "PublicSubnetA"
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-management"
+        - Key: Role
+          Value: management
+        - Key: bench
+          Value: !Sub "${AWS::StackName}"
+

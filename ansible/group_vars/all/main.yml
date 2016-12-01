@@ -1,0 +1,6 @@
+---
+aws_region: us-east-1
+keypair: bdelbosc
+bench_tag: nyt
+deployment_profile: test
+aws_allow_ssh_from: 0.0.0.0/0
