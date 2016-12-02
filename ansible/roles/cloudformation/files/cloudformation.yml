@@ -39,18 +39,18 @@ Mappings:
       RedisInstanceType: cache.m3.xlarge
 
     prod:
-      NuxeoClusterSize: 2
-      NuxeoInstanceType: c4.2xlarge
-      NuxeoInstanceStorage: 100
-      ESClusterSize: 3
-      ESInstanceType: m4.2xlarge
-      ESInstanceStorage: 100
+      NuxeoClusterSize: 1
+      NuxeoInstanceType: c4.4xlarge
+      NuxeoInstanceStorage: 30
+      ESClusterSize: 1
+      ESInstanceType: m4.4xlarge
+      ESInstanceStorage: 200
       MongoDBClusterSize: 1
       MongoDBInstanceType: m4.4xlarge
-      MongoDBInstanceStorage: 100
+      MongoDBInstanceStorage: 200
       ManagementInstanceType: c4.xlarge
       ManagementInstanceStorage: 30
-      RedisInstanceType: cache.r3.xlarge
+      RedisInstanceType: cache.m3.xlarge
 
 Outputs:
   AWSRegion:

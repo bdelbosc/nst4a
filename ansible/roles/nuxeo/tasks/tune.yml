@@ -1,0 +1,6 @@
+--
+- name: Add tune template
+  copy: src=tune dest=/opt/nuxeo/server/templates/ owner=nuxeo
+
+- name: Update templates
+  lineinfile: dest={{nuxeo_conf_dir}}/nuxeo.conf line="nuxeo.templates=default,mongodb,perf,tune" regexp="#?nuxeo.templates\s*=.*"

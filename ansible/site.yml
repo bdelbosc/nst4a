@@ -62,6 +62,7 @@
   sudo: yes
   tasks:
   - include: ./roles/nuxeo/tasks/config_graphite.yml
+  - include: ./roles/nuxeo/tasks/tune.yml
 
 - hosts: nuxeo
   gather_facts: no

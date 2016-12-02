@@ -122,7 +122,7 @@ On Mongo:
 
 From the nuxeo host:
  
-    curl -XGET -vv -u Administrator:Administrator "http://127.0.0.1:8080/nuxeo/site/randomImporter/run?targetPath=/default-domain/workspaces&batchSize=30&nbThreads=20&interactive=false&nbNodes=1000000&fileSizeKB=0&bulkMode=true&onlyText=false&withProperties=true&blockAsyncProcessing=true&blockSyncPostCommitProcessing=true"
+    curl -XGET -vv -u Administrator:Administrator "http://127.0.0.1:8080/nuxeo/site/randomImporter/run?targetPath=/default-domain/workspaces&batchSize=30&nbThreads=20&interactive=false&nbNodes=1000000&fileSizeKB=0&bulkMode=true&onlyText=false&withProperties=true&blockAsyncProcessing=true&blockSyncPostCommitProcessing=true&lang=en_US"
 
 
 ## Upload the Grafana dashboard
