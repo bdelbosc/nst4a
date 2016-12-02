@@ -1,4 +1,5 @@
---
+---
+
 - name: Add tune template
   copy: src=tune dest=/opt/nuxeo/server/templates/ owner=nuxeo
 
