@@ -1,0 +1,27 @@
+---
+- name: List stopped instances
+  shell: aws ec2 describe-instances --filters "Name=tag:bench,Values={{bench_tag}}" "Name=instance-state-name,Values=stopped" --region={{aws_region}} --no-paginate --query "Reservations[*].Instances[*].InstanceId" | grep "i-" | tr -d '" ,' | paste -d, -s
+  changed_when: False
+  register: stopped_instances
+
+- name: Start stopped instances
+  ec2:
+    region: "{{aws_region}}"
+    instance_ids: "{{stopped_instances.stdout}}"
+    state: "running"
+    wait: yes
+  when: stopped_instances.stdout != ""
+  register: started_instances
+
+- name: Register empty list for started instances
+  set_fact:
+    started_instances: {"instances": []}
+  when: stopped_instances.stdout == ""
+
+- name: Add started instances to group
+  add_host: hostname={{item.private_ip if keypair == "Jenkins" else item.public_ip}} groupname={{item.tags["Role"]}}
+  with_items: started_instances.instances
+
+- name: Wait for SSH to be available on all instances
+  wait_for: host={{item.private_ip if keypair == "Jenkins" else item.public_ip}} port=22 delay=10 timeout=320 state=started
+  with_items: started_instances.instances

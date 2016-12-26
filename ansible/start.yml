@@ -1,0 +1,44 @@
+---
+
+- hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+  - include: ./roles/ec2/tasks/start.yml
+
+- hosts: nuxeo:mongo:es:management
+  gather_facts: yes
+  sudo: yes
+  tasks:
+  - include: ./roles/monitoring/tasks/set_hosts.yml
+
+- hosts: nuxeo:mongo:es:management
+  gather_facts: yes
+  sudo: yes
+  tasks:
+  - include: ./roles/monitoring/tasks/config_diamond.yml
+
+- hosts: management
+  gather_facts: yes
+  sudo: yes
+  roles:
+  - role: management
+
+- hosts: nuxeo
+  gather_facts: yes
+  sudo: yes
+  roles:
+  - {role: nuxeo, stage: stop}
+
+- hosts: nuxeo
+  gather_facts: yes
+  sudo: yes
+  roles:
+  - {role: nuxeo, stage: setup}
+
+- hosts: nuxeo
+  gather_facts: yes
+  sudo: yes
+  tasks:
+  - include: ./roles/nuxeo/tasks/config_graphite.yml
+  - include: ./roles/nuxeo/tasks/tune.yml

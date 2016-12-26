@@ -163,7 +163,6 @@ Resources:
       GroupId: !Ref DefaultSG
 
 
-
   NuxeoHttpLB:
     Type: "AWS::ElasticLoadBalancing::LoadBalancer"
     DependsOn: IgAttachment
@@ -239,10 +238,8 @@ Resources:
             VolumeSize: !FindInMap [ Profiles, !Ref Profile, NuxeoInstanceStorage ]
             VolumeType: gp2
       NetworkInterfaces:
-        - AssociatePublicIpAddress: "true"
+        - NetworkInterfaceId: !Ref webXface
           DeviceIndex: "0"
-          GroupSet: [ !Ref "DefaultSG" ]
-          SubnetId: !Ref "PublicSubnetA"
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName}-nuxeo"
@@ -251,7 +248,27 @@ Resources:
         - Key: bench
           Value: !Sub "${AWS::StackName}"
 
+  NuxeoEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+         Domain: vpc
 
+  AssociateNuxeoWebPort:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt NuxeoEIP.AllocationId
+      NetworkInterfaceId: !Ref webXface
+
+  webXface:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      GroupSet: [ !Ref "DefaultSG" ]
+      SourceDestCheck: true
+      Tags:
+        -
+          Key: Network
+          Value: Web
 
   ESInstance:
     Type: "AWS::EC2::Instance"

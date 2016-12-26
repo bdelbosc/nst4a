@@ -1,0 +1,9 @@
+---
+
+- name: Get hostname
+  shell: hostname
+  register: hostname
+
+- name: Configure diamond
+  template: src=diamond.conf.j2 dest=/etc/diamond/diamond.conf
+  notify: Restart diamond

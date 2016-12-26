@@ -85,7 +85,8 @@ Once you have the ssh access you can run the ansible playbook to setup the stack
     ansible-playbook -vv  -i inventory.py  site.yml
 
 
-The Nuxeo is not yet started.
+The Nuxeo is not yet started. 
+Note that at the moment you may need to run multiple time the site playbook, there is a java8 installation that requires to rerun the playbook.
 
 
 # Accessing
@@ -124,6 +125,19 @@ From the nuxeo host:
  
     curl -XGET -vv -u Administrator:Administrator "http://127.0.0.1:8080/nuxeo/site/randomImporter/run?targetPath=/default-domain/workspaces&batchSize=30&nbThreads=20&interactive=false&nbNodes=1000000&fileSizeKB=0&bulkMode=true&onlyText=false&withProperties=true&blockAsyncProcessing=true&blockSyncPostCommitProcessing=true&lang=en_US"
 
+## Stop all ec2 instances
+
+This will stop (pause) all ec2 instances
+
+    ansible-playbook -vv  stop.py
+    
+## Start all ec2 instances
+
+To restart ec2 instances that have been stopped with the previous stop operation:
+
+    ansible-playbook -vv  start.py
+
+Note that at the moment you may need to run multiple time the start playbook.
 
 ## Upload the Grafana dashboard
 

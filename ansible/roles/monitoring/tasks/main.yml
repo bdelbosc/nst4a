@@ -36,10 +36,6 @@
   shell: dpkg -i /tmp/diamond_4.0.473_all.deb
   when: not diamond_exists.stat.exists
 
-- name: Get hostname
-  shell: hostname
-  register: hostname
-
 - name: Configure diamond
-  template: src=diamond.conf.j2 dest=/etc/diamond/diamond.conf
-  notify: Restart diamond
+  include: ./config_diamond.yml
+  when: not diamond_exists.stat.exists

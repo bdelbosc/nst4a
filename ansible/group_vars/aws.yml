@@ -1,7 +1,6 @@
 ---
 aws_region: eu-west-1
 keypair: ppair
-bench_tag: foo
 
 download_mp_package: false
 

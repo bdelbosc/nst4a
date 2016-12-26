@@ -87,6 +87,10 @@ if "nuxeo" not in inventory:
     inventory["nuxeo"] = {}
 if "es" not in inventory:
     inventory["es"] = {}
+if "mongo" not in inventory:
+    inventory["mongo"] = {}
+if "management" not in inventory:
+    inventory["management"] = {}
 
 inventory["nuxeo"]["vars"] = {"db_hosts": [], "es_hosts": [], "mongodb_hosts": [], "mgmt_hosts": [], "redis_hosts": [redisHost]}
 inventory["es"]["vars"] = {"mgmt_hosts": []}
